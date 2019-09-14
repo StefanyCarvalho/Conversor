@@ -29,42 +29,86 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
+  final _realControler =
+      TextEditingController(); // Variavel que faz o controle e recebe o valor que for digitado no campo real
+  final _dolarControler = TextEditingController();
+  final euroControler = TextEditingController();
+
+  final _dolarFocus = FocusNode();
+  final _euroFocus = FocusNode();
+
   double dolar;
   double euro;
+  @override
+  void dispose() {
+    _euroFocus.dispose();
+    _dolarFocus.dispose();
+    super.dispose();
+  }
+
+  void _requestFocus(FocusScopeNode node, FocusNode focusNode) {
+    node.requestFocus(focusNode); //pegando a caixa de texto que deve ir o foco
+  }
+
+  void _realChanged(String text) {
+    // essas funções é para ver quando o valor dos campos forem alterados
+    double real = double.parse(text);
+    _dolarControler.text = (real / dolar).toStringAsFixed(2);
+    euroControler.text = (real / euro).toStringAsFixed(2);
+  }
+
+  void _dolarChanged(String text) {
+    double dolar = double.parse(text); // faz a conversão do text para double
+    _realControler.text = (dolar * this.dolar).toStringAsFixed(2);
+    euroControler.text = (dolar * this.dolar / euro).toStringAsFixed(2);
+  }
+
+  void _euroChanged(String text) {
+    double euro = double.parse(text);
+    _realControler.text = (dolar * this.dolar).toStringAsFixed(2);
+    _dolarControler.text = (euro * this.euro / dolar).toStringAsFixed(2);
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey,
-      appBar: AppBar(
-        backgroundColor: Colors.black54,
-        title: Text("Conversor"),
-        centerTitle: true,
-      ),
-      body: FutureBuilder(
-          // ele vai construir a tela dependendo do que estiver no getData()
-          future: getData(),
-          builder: (context, snapshot) {
-            switch (snapshot.connectionState) {
-              case ConnectionState.none:
-              case ConnectionState.waiting:
+    final focus = FocusScope.of(context);
+    return GestureDetector(
+      onTap: focus.unfocus,
+      child: Scaffold(
+        backgroundColor: Colors.grey,
+        appBar: AppBar(
+          backgroundColor: Colors.black54,
+          title: Text("Conversor"),
+          centerTitle: true,
+        ),
+        body: FutureBuilder(
+            // ele vai construir a tela dependendo do que estiver no getData()
+            future: getData(),
+            builder: (context, snapshot) {
+              print(snapshot.connectionState);
+
+              ///aqui estava o switch case, substituimos pelo if para verificar o estado da conexão
+              if (snapshot.hasError) {
+                /// verificando se tem algum
                 return Center(
                   child: Text(
-                    "Carregando Dados...",
+                    "Erro ao Carregar Dados",
                     style: TextStyle(color: Colors.white, fontSize: 25.0),
                     textAlign: TextAlign.center,
                   ),
                 );
-              default:
-                if (snapshot.hasError) {
+              } else {
+                if (!snapshot.hasData)
+
+                  /// verificando se tem algum dado, ele verifica porque ele esta buscando os dados do Json
                   return Center(
                     child: Text(
-                      "Erro ao Carregar Dados",
+                      "Carregando Dados...",
                       style: TextStyle(color: Colors.white, fontSize: 25.0),
                       textAlign: TextAlign.center,
                     ),
                   );
-                } else {
+                else {
                   dolar = snapshot.data["results"]["currencies"]["USD"]["buy"];
                   euro = snapshot.data["results"]["currencies"]["EUR"]["buy"];
                   return SingleChildScrollView(
@@ -77,39 +121,49 @@ class _HomeState extends State<Home> {
                           color: Colors.black,
                           size: 120.0,
                         ),
-                        TextField(
-                          decoration: InputDecoration(
-                              labelText: "Reais",
-                              labelStyle: TextStyle(color: Colors.black),
-                              border: OutlineInputBorder(),
-                              prefixText: "R\$"),
-                          style: TextStyle(color: Colors.black, fontSize: 25.0),
-                        ),
+                        _buildTextField(
+                            "Reais", "R\$", _realControler, _realChanged,
+                            onSubmitted: (s) =>
+                                focus.requestFocus(_dolarFocus)),
                         Divider(),
-                        TextField(
-                          decoration: InputDecoration(
-                              labelText: "Dolares",
-                              labelStyle: TextStyle(color: Colors.black),
-                              border: OutlineInputBorder(),
-                              prefixText: "US\$"),
-                          style: TextStyle(color: Colors.black, fontSize: 25.0),
-                        ),
+                        _buildTextField(
+                            "Dolares", "US\$", _dolarControler, _dolarChanged,
+                            focusNode: _dolarFocus,
+                            onSubmitted: (s) => focus.requestFocus(_euroFocus)),
                         Divider(),
-                        TextField(
-                          decoration: InputDecoration(
-                              labelText: "Euros",
-                              labelStyle: TextStyle(color: Colors.black),
-                              border: OutlineInputBorder(),
-                              prefixText: "€"),
-                          style: TextStyle(color: Colors.black, fontSize: 25.0),
-                        )
+                        _buildTextField(
+                            "Euros", "€", euroControler, _euroChanged,
+                            focusNode: _euroFocus),
                       ],
                     ),
                   );
                 }
-                break;
-            }
-          }),
-    );
+              }
+            }),
+      ),
+    ); //Scaffold
   }
+}
+
+Widget _buildTextField(
+    String label, String prefix, TextEditingController c, Function function,
+    {FocusNode focusNode,
+    Function(String) onSubmitted,
+    TextInputAction textInputAction = TextInputAction.done}) {
+  //esta função chama o nome da label e o prefixo, otimizando o código
+
+  return TextField(
+    textInputAction: textInputAction,
+    onSubmitted: onSubmitted,
+    focusNode: focusNode,
+    controller: c,
+    decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(color: Colors.black),
+        border: OutlineInputBorder(),
+        prefixText: prefix),
+    style: TextStyle(color: Colors.black, fontSize: 25.0),
+    onChanged: function,
+    keyboardType: TextInputType.number,
+  );
 }
