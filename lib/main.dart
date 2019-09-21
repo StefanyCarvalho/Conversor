@@ -32,7 +32,7 @@ class _HomeState extends State<Home> {
   final _realControler =
       TextEditingController(); // Variavel que faz o controle e recebe o valor que for digitado no campo real
   final _dolarControler = TextEditingController();
-  final euroControler = TextEditingController();
+  final _euroControler = TextEditingController();
 
   final _dolarFocus = FocusNode();
   final _euroFocus = FocusNode();
@@ -50,23 +50,43 @@ class _HomeState extends State<Home> {
     node.requestFocus(focusNode); //pegando a caixa de texto que deve ir o foco
   }
 
+  void _clearTextFields(String text) {
+    if (text.isEmpty) {
+      _dolarControler.clear();
+      _realControler.clear();
+      _euroControler.clear();
+    }
+  }
+
   void _realChanged(String text) {
     // essas funções é para ver quando o valor dos campos forem alterados
-    double real = double.parse(text);
-    _dolarControler.text = (real / dolar).toStringAsFixed(2);
-    euroControler.text = (real / euro).toStringAsFixed(2);
+
+    _clearTextFields(text);
+    if (text.isNotEmpty) {
+      double real = double.parse(text);
+      _dolarControler.text = (real / dolar).toStringAsFixed(2);
+      _euroControler.text = (real / euro).toStringAsFixed(2);
+    }
   }
 
   void _dolarChanged(String text) {
-    double dolar = double.parse(text); // faz a conversão do text para double
-    _realControler.text = (dolar * this.dolar).toStringAsFixed(2);
-    euroControler.text = (dolar * this.dolar / euro).toStringAsFixed(2);
+    _clearTextFields(text);
+
+    if (text.isNotEmpty) {
+      double dolar = double.parse(text); // faz a conversão do text para double
+      _realControler.text = (dolar * this.dolar).toStringAsFixed(2);
+      _euroControler.text = (dolar * this.dolar / euro).toStringAsFixed(2);
+    }
   }
 
   void _euroChanged(String text) {
-    double euro = double.parse(text);
-    _realControler.text = (dolar * this.dolar).toStringAsFixed(2);
-    _dolarControler.text = (euro * this.euro / dolar).toStringAsFixed(2);
+    _clearTextFields(text);
+
+    if (text.isNotEmpty) {
+      double euro = double.parse(text);
+      _realControler.text = (dolar * this.dolar).toStringAsFixed(2);
+      _dolarControler.text = (euro * this.euro / dolar).toStringAsFixed(2);
+    }
   }
 
   @override
@@ -77,8 +97,11 @@ class _HomeState extends State<Home> {
       child: Scaffold(
         backgroundColor: Colors.grey,
         appBar: AppBar(
-          backgroundColor: Colors.black54,
-          title: Text("Conversor"),
+          backgroundColor: Colors.black45,
+          title: Text(
+            "Conversor",
+            style: TextStyle(color: Colors.white),
+          ),
           centerTitle: true,
         ),
         body: FutureBuilder(
@@ -132,7 +155,7 @@ class _HomeState extends State<Home> {
                             onSubmitted: (s) => focus.requestFocus(_euroFocus)),
                         Divider(),
                         _buildTextField(
-                            "Euros", "€", euroControler, _euroChanged,
+                            "Euros", "€", _euroControler, _euroChanged,
                             focusNode: _euroFocus),
                       ],
                     ),
@@ -164,6 +187,6 @@ Widget _buildTextField(
         prefixText: prefix),
     style: TextStyle(color: Colors.black, fontSize: 25.0),
     onChanged: function,
-    keyboardType: TextInputType.number,
+    keyboardType: TextInputType.numberWithOptions(decimal: true),
   );
 }
